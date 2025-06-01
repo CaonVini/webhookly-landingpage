@@ -25,7 +25,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { useState, useEffect } from "react"
-import { collection, addDoc, serverTimestamp } from "firebase/firestore"
+import { collection, addDoc, serverTimestamp, query, where, getDocs } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 
 export default function WebhooklyLanding() {
@@ -58,7 +58,6 @@ export default function WebhooklyLanding() {
   }, [])
 
   useEffect(() => {
-    // Verificar se já foi enviado anteriormente
     const submitted = localStorage.getItem("webhookly_submitted")
     if (submitted === "true") {
       setAlreadySubmitted(true)
@@ -67,23 +66,30 @@ export default function WebhooklyLanding() {
 
   const saveToFirebase = async (name: string, email: string) => {
     try {
+      const q = query(collection(db, "pre_cadastros"), where("email", "==", email));
+      const querySnapshot = await getDocs(q);
+
+      if (!querySnapshot.empty) {
+        console.log("Este email já está pré-cadastrado.");
+        return "already_exists";
+      }
+
       const docRef = await addDoc(collection(db, "pre_cadastros"), {
         nome: name,
         email: email,
         created_at: new Date(), 
       });
       console.log("Documento salvo com ID: ", docRef.id);
-      return true;
+      return "success";
     } catch (error) {
       console.error("Erro ao salvar no Firebase: ", error);
-      return false;
+      return "error";
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    // Se já foi enviado anteriormente, apenas mostrar agradecimento
     if (alreadySubmitted) {
       setIsSubmitted(true)
       return
@@ -92,19 +98,23 @@ export default function WebhooklyLanding() {
     setIsLoading(true)
 
     try {
-      // Salvar no Firebase
-      const success = await saveToFirebase(name, email)
+      const result = await saveToFirebase(name, email)
 
-      if (success) {
-        // Marcar como enviado no localStorage
+      if (result === "success") {
         localStorage.setItem("webhookly_submitted", "true")
         localStorage.setItem("webhookly_user_name", name)
         localStorage.setItem("webhookly_user_email", email)
 
         setAlreadySubmitted(true)
         setIsSubmitted(true)
-      } else {
-        // Em caso de erro, mostrar mensagem (você pode personalizar isso)
+      } else if (result === "already_exists") {
+        localStorage.setItem("webhookly_submitted", "true")
+        localStorage.setItem("webhookly_user_name", name) 
+        localStorage.setItem("webhookly_user_email", email) 
+
+        setAlreadySubmitted(true)
+        setIsSubmitted(true)
+      } else { 
         alert("Erro ao enviar dados. Tente novamente.")
       }
     } catch (error) {
@@ -118,7 +128,6 @@ export default function WebhooklyLanding() {
   const openModal = () => {
     setIsModalOpen(true)
 
-    // Se já foi enviado, ir direto para o agradecimento
     if (alreadySubmitted) {
       const savedName = localStorage.getItem("webhookly_user_name") || "usuário"
       setName(savedName)
