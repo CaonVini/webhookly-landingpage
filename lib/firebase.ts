@@ -1,9 +1,9 @@
-// No seu arquivo de configuração do Firebase (ex: @/lib/firebase.js)
+
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-  // Use o prefixo 'NEXT_PUBLIC_'
+
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
   projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
